@@ -12,15 +12,16 @@ import java.util.Date;
 import java.util.List;
 
 public class GuestbookDao {
+	DBUtil dbUnit;
 	
 	public GuestbookDao () {
+    	dbUnit = new DBUtil();
 		init();
 	}
 	
     public List<Guestbook> getGuestbooks(){
         List<Guestbook> list = new ArrayList<>();
 
-    	DBUtil dbUnit = new DBUtil();
     	dbUnit.getTableNames();
 
         return list;
@@ -31,6 +32,23 @@ public class GuestbookDao {
     }
     
     public boolean init() {
+    	createGuestbookTable();
+    	return true;
+    }
+    
+    public boolean createGuestbookTable() {
+    	List<String> tableList = this.dbUnit.getTableNames();
+    	
+    	if (tableList.contains("guestbook")) return true;
+    	
+    	String ddl = "";
+    	ddl = "CREATE TABLE `guestbook` (";
+    	ddl += " `id` INT(11) NOT NULL AUTO_INCREMENT COMMENT 'guestbook id',";
+    	ddl += "`content` TEXT NOT NULL COMMENT 'guestbook content',";
+    	ddl += "`regdate` DATETIME NULL DEFAULT NULL COMMENT '등록일',";
+    	ddl += "PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8;";
+    	
+    	this.dbUnit.createTable(ddl);
     	
     	return true;
     }
