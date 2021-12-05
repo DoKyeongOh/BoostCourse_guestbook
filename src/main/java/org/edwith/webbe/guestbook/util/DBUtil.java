@@ -1,11 +1,6 @@
 package org.edwith.webbe.guestbook.util;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Driver;
-import java.sql.DriverManager;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,6 +22,13 @@ public class DBUtil {
 		public boolean setStmt (String sql) {
 			if (this.conn == null) return false;
 			if (sql == "" || sql == null) return false;
+	    	try {
+				if (!this.conn.isValid(0)) 
+					if (!this.setConnection(getConnection())) return false;
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return false;
+			}
 			
 			// initialize
 			this.pstmt = null;
@@ -46,33 +48,54 @@ public class DBUtil {
 			try {
 				this.rs = this.pstmt.executeQuery(this.sql);
 			} catch (SQLException e) {
-				System.out.println("execute - " + sql + " - " + e);
-				return false;
+				try {
+					this.pstmt.executeUpdate(this.sql);
+					return true;
+				} catch (Exception e2) {
+					System.out.println("execute - " + sql + " - " + e2);
+					return false;
+				}
 			}
 			
 			return true;
 		}
 		
 		public void close() {
-			this.conn = null;
-			this.pstmt = null;
-			this.rs = null;
-			this.sql = "";
+			try {
+				this.sql = "";
+				this.rs.close();
+				this.pstmt.close();
+				this.conn.close();
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
 			close();
 		}
 		
 	}
 	
+	private DBElements dbElements;
+	
+	public DBUtil () {
+		initDbElements();
+	}
+	
+	public void initDbElements() {
+		if (dbElements != null) dbElements.close();
+		dbElements = new DBElements();
+		dbElements.setConnection(getConnection());
+	}
+	
 	private Connection getConnection(){
         return getConnection("jdbc:mysql://localhost:3306/exam","DBA","1234");
-        //?useSSL=false&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
     }
 
     private Connection getConnection(String dbURL, String dbId, String dbPassword){
     	Connection conn = null;
-    	// Timezone, SSL
+
     	String option = "?useUnicode=true&characterEncoding=utf8&useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC";
     	dbURL += option;
+    	
         try{
             Class.forName("com.mysql.cj.jdbc.Driver");//com.mysql.cj.jdbc.Driver
             conn= DriverManager.getConnection(dbURL, dbId, dbPassword);
@@ -81,22 +104,42 @@ public class DBUtil {
         }
         return conn;
     }
+    
+    public DBElements sqlExecute(String sql) {
+    	try {
+			if (!dbElements.conn.isValid(0)) 
+				if (!dbElements.setConnection(getConnection())) return null;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+    	
+    	if (!dbElements.setStmt(sql)) return null;
+    	if (!dbElements.execute()) return null;
+    	
+    	return dbElements;
+    }
 
+    
     public List<String> getTableNames() {
     	List<String> tables = new ArrayList<String>();
-    	DBElements elements = new DBElements();
+    	sqlExecute("show tables");
+    	if (dbElements == null) return null;
     	
-    	if (!elements.setConnection(getConnection())) return null;
-    	if (!elements.setStmt("show tables")) return null;
-    	if (!elements.execute()) return null;
     	try {
-			while (elements.rs.next()) {
-				tables.add(elements.rs.getString(1));
+			while (dbElements.rs.next()) {
+				tables.add(dbElements.rs.getString(1));
 			}
 		} catch (SQLException e) {
 			System.out.println("getTableNames - " + e);
 		}
+    	
     	return tables;
+    }
+    
+    public boolean createTable(String ddl) {
+    	if (sqlExecute(ddl) == null) return false;
+    	else return true;
     }
 }
 
