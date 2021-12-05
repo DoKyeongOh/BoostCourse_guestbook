@@ -1,7 +1,9 @@
-<%@ page contentType="text/html; charset=utf-8" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%>
+
+
+<!-- %@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %-->
+<!--%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%-->
+<!--%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt"%-->
+ <!--  -->
 <html>
     <head>
         <title>방명록</title>
@@ -30,7 +32,7 @@
         <br><br><br>
 
         <form method="post" action="guestbooks/write">
-            이름 : <input type="text" name="name"><br>
+            이름 : <input type="tex" name="name"><br>
             내용 :
             <textarea name="content" cols="50" rows="5"></textarea><br>
             <input type="submit" value="확인">
