@@ -1,103 +1,165 @@
 package org.edwith.webbe.guestbook.util;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Driver;
-import java.sql.DriverManager;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class DBUtil {
-	
-	public class DBElements {
+
+	class DBParameter {
+
+		private String connectorType = "";
+		private String Url = "";
+		private String userId = "";
+		private String userPswd = "";
+		private String Option = "";
+		public String getconnectorType() {
+			return connectorType;
+		}
+
+		public void setConnectorType(String connectorType) {
+			this.connectorType = connectorType;
+		}
+
+		public String getUrl() {
+			return Url;
+		}
+
+		public void setUrl(String dbUrl) {
+			this.Url = dbUrl;
+		}
+
+		public String getUserId() {
+			return userId;
+		}
+
+		public void setUserId(String userId) {
+			this.userId = userId;
+		}
+
+		public String getuUerPswd() {
+			return userPswd;
+		}
+
+		public void setUserPswd(String userPswd) {
+			this.userPswd = userPswd;
+		}
+
+		public String getOption() {
+			return Option;
+		}
+
+		public void setDbOption(String Option) {
+			this.Option = Option;
+		}
+		
+		public void initial() {
+			setConnectorType("");
+			setUserId("");
+			setUserPswd("");
+			setUrl("");
+			setDbOption("");
+		}
+		
+		public boolean checkParameter(DBParameter parameter) {
+			if (connectorType == "") return false;
+			if (userId == "") return false;
+			if (userPswd == "") return false;
+			return true;
+		}
+	}
+
+	public DBParameter parameters = null;
+
+	public DBUtil() {
+		parameters = new DBParameter();
+		setCustomParameter();
+	}
+	public Connection getConnection(){
+		setCustomParameter();
+		return getConnection(parameters);
+    }
+
+	private Connection getConnection(DBParameter param){
 		Connection conn = null;
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-		String sql = "";
 		
-		public boolean setConnection (Connection c) {
-			if (c == null) return false;
-			
-			this.conn = c;
-			return true;
-		}
-
-		public boolean setStmt (String sql) {
-			if (this.conn == null) return false;
-			if (sql == "" || sql == null) return false;
-			
-			// initialize
-			this.pstmt = null;
-			this.sql = sql;
-			try {
-				this.pstmt = conn.prepareStatement(this.sql);
-			} catch (SQLException e) {
-				System.out.println("setStmt - " + sql + " - " + e);
-				return false;
-			}
-			return true;
-		}
-
-		public boolean execute () {
-			if (this.pstmt == null || this.conn == null) return false;
-			
-			try {
-				this.rs = this.pstmt.executeQuery(this.sql);
-			} catch (SQLException e) {
-				System.out.println("execute - " + sql + " - " + e);
-				return false;
-			}
-			
-			return true;
-		}
+    	String url = parameters.getUrl() + parameters.getOption();
+    	String id = parameters.getUserId();
+    	String pswd = parameters.getuUerPswd();
+    	
+        try{
+            Class.forName("com.mysql.cj.jdbc.Driver");
+            conn= DriverManager.getConnection(url, id, pswd);
+        }catch(Exception e){
+			e.printStackTrace();
+			return null;
+        }
+        return conn;
+    }
+	
+	public void setCustomParameter() {
+		parameters.setConnectorType("mysql");
+		parameters.setUrl("jdbc:mysql://localhost:3306/exam");
+		parameters.setUserId("DBA");
+		parameters.setUserPswd("1234");
 		
-		public void close() {
-			this.conn = null;
-			this.pstmt = null;
-			this.rs = null;
-			this.sql = "";
-			close();
+		// 타임존, ssl 옵션, utf-8 설정되어있음.
+		parameters.setDbOption("?useUnicode=true&characterEncoding=utf8&useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC");
+	}
+	
+	public ResultSet execQuery(String sql) {
+		Connection conn = getConnection();
+		if (conn == null) return null;
+		
+		PreparedStatement pstmt;
+		try {
+			pstmt = conn.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			return rs;
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+			return null;
 		}
 		
 	}
 	
-	private Connection getConnection(){
-        return getConnection("jdbc:mysql://localhost:3306/exam","DBA","1234");
-        //?useSSL=false&useUnicode=true&useJDBCCompliantTimezoneShift=true&useLegacyDatetimeCode=false&serverTimezone=UTC
-    }
-
-    private Connection getConnection(String dbURL, String dbId, String dbPassword){
-    	Connection conn = null;
-    	// Timezone, SSL
-    	String option = "?useUnicode=true&characterEncoding=utf8&useSSL=false&useLegacyDatetimeCode=false&serverTimezone=UTC";
-    	dbURL += option;
-        try{
-            Class.forName("com.mysql.cj.jdbc.Driver");//com.mysql.cj.jdbc.Driver
-            conn= DriverManager.getConnection(dbURL, dbId, dbPassword);
-        }catch(Exception ex){
-			System.out.println("getConnection - " + ex);
-        }
-        return conn;
-    }
-
-    public List<String> getTableNames() {
-    	List<String> tables = new ArrayList<String>();
-    	DBElements elements = new DBElements();
-    	
-    	if (!elements.setConnection(getConnection())) return null;
-    	if (!elements.setStmt("show tables")) return null;
-    	if (!elements.execute()) return null;
-    	try {
-			while (elements.rs.next()) {
-				tables.add(elements.rs.getString(1));
+	public boolean exec(String sql) {
+		try (
+				Connection conn = getConnection();
+				PreparedStatement pstmt = conn.prepareStatement(sql)) {
+			pstmt.executeUpdate();
+			return true;
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	public boolean findTable(String tablename) {
+		List<String> list = new ArrayList<String>();
+		String sql = "show tables";
+		
+		ResultSet rs = execQuery(sql);
+		if (rs == null) return false;
+		
+		
+		try {
+			while(rs.next()) {
+				// 테이블 컬럼의 인덱스는 1부터인가보다
+				list.add(rs.getString(1));
 			}
 		} catch (SQLException e) {
-			System.out.println("getTableNames - " + e);
+			e.printStackTrace();
+			return false;
 		}
-    	return tables;
-    }
+		
+		if (list.contains(tablename)) return true;
+		else return false;
+	}
+    
+    
+    
+
 }
 
 
