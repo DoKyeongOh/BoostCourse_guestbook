@@ -25,8 +25,28 @@ public class GuestbookListServlet extends HttpServlet {
     	GuestbookDao guestbookDao = new GuestbookDao();
 		List<Guestbook> guestList = guestbookDao.getGuestbooks();
     	
-    	out.print("안녕하세요");
+		out.println("<html>");
+		out.println("<head><title>form</title></head>");
+		out.println("<body>");
+		
+		for (Guestbook gg : guestList) {
+    		out.print("id : " + gg.getId() + "<br>");
+    		out.print("name : " + gg.getName() + "<br>");
+    		out.print(gg.getContent() + "<br>");
+    		out.print("regdate : " + gg.getRegdate() + "<br><hr>");
+    	}
+		
+		out.println("<form method='post' action='/guestbooks/write'>");
+		out.println("이름 : <input type='text' name='name'><br>");
+		out.println("내용 : <textarea name='content'cols='50' rows='5'></textarea><br>");
+		out.println("<input type='submit' value='ok'><br>");                                                 
+		out.println("</form>");
+		
+		out.println("</body>");
+		out.println("</html>");
+            
     	out.close();
     }
 
 }
+ 
